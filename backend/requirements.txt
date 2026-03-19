@@ -1,0 +1,33 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+
+# ML / Deep Learning
+torch
+torchvision
+grad-cam
+
+# NLP / HuggingFace
+transformers
+sentence-transformers
+accelerate
+
+# LangChain
+langchain
+langchain-community
+langchain-google-genai
+langchain-openai
+faiss-cpu
+
+# Image Processing
+Pillow
+opencv-python-headless
+numpy
+
+# Utilities
+python-dotenv
+requests
+aiofiles
+httpx
+kagglehub
