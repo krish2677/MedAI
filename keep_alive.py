@@ -4,7 +4,7 @@ import threading
 import os
 
 # Insert your actual deployed Render URL here once you deploy it
-RENDER_URL = "https://medai-backend.onrender.com/api/v1/health"
+RENDER_URL = "https://medai-api-exye.onrender.com/api/v1/health"
 
 def keep_awake():
     """

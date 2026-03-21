@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://medai-backend.onrender.com/api/$1"
+      "destination": "https://medai-api-exye.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
