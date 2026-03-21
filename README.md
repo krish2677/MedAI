@@ -1,78 +1,71 @@
-# AI Medical Diagnosis Assistant
+# 🧬 MedAI: AI-Powered Medical Diagnosis Assistant
 
-![MedAI Banner Placeholder](https://via.placeholder.com/1200x400?text=MedAI+Diagnosis+Dashboard)
+![MedAI Banner](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge) ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi) ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white) 
 
-[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.3-ee4c2c.svg)](https://pytorch.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+MedAI is a comprehensive, full-stack, multimodal artificial intelligence platform designed to assist healthcare professionals by analyzing medical imagery, processing patient symptoms, and generating highly structured, explainable clinical reports.
 
-A full-stack, multimodal AI-powered Medical Diagnosis Assistant web application. The system analyzes medical images (like Chest X-Rays) and patient symptoms to output a structured diagnostic report with confidence scores, a visual heatmap (Grad-CAM), and an LLM-generated clinical summary grounded in medical literature (RAG).
+## ✨ Core Features
 
-## Features
+*   **Multimodal Image Analysis:** Utilizes sophisticated Hugging Face `EfficientNet` architectures to rapidly classify Chest X-rays, Skin Lesions, and Retinal Scans.
+*   **Explainable AI (Grad-CAM):** We don't just give a black-box diagnosis. MedAI generates overlay heatmaps on patient scans, visually highlighting exactly which biological areas triggered the AI's classification so human doctors can trust the output.
+*   **LLM Clinical Synthesis:** Fuses the AI's raw image analysis with the patient's self-reported text/voice symptoms. It routes this data through advanced Large Language Models (supporting Groq, Gemini, or ChatGPT) to print a professional medical report.
+*   **Conversational Triage Chat (RAG):** Features a memory-augmented FAISS Vector Database, allowing users to interactively chat with their medical report and ask follow-up questions about their diagnosis.
+*   **Voice-to-Text Dictation:** Integrates the browser's native SpeechRecognition API, allowing patients or doctors to speak their symptoms effortlessly.
+*   **Specialist Locator:** Automatically maps the pathology findings to recommend the correct medical specialist (e.g., Dermatologist, Pulmonologist) and links directly to localized Google Maps searches.
+*   **Progressive Web App (PWA):** Fully installable natively on iOS, Android, and Desktop environments directly from the browser for a native application feel.
+*   **Hyper-Secure Architecture:** Hardened backend using `slowapi` rate limiting (to prevent DDoS), extremely strict CORS origins, rapid MIME-type file sanitization, and 100% ephemeral processing where absolutely zero patient data is permanently saved to any hard drive.
 
-- ✅ **Image Upload & CV Inference:** Fine-tuned `EfficientNet-B4` CNN classifications.
-- ✅ **Grad-CAM Visualizations:** Explainable AI overlays isolating regions of focus.
-- ✅ **NLP Symptom Mapping:** Extracts medical entities using BioBERT.
-- ✅ **Multimodal Fusion Engine:** Weighted ensemble of visual and text predictions.
-- ✅ **RAG-Powered LLM Reports:** Gemini 1.5/GPT-4o text generation grounded in FAISS vector store.
-- ✅ **Conversational Follow-up Q&A:** Ask your AI assistant about the diagnosis context.
-- ✅ **Urgency Classification:** Automated triaging (LOW, MODERATE, HIGH).
+## 🛠️ Technology Stack
 
-## Tech Stack
+**Frontend (Client)**
+*   **Framework:** React (+ Vite)
+*   **Styling:** Tailwind CSS
+*   **Animations:** Framer Motion (3D spatial transitions) & AOS (Scroll animations)
+*   **Icons:** Lucide React
+*   **PWA:** `vite-plugin-pwa` Service Workers
 
-| Domain | Technology |
-|---|---|
-| **Frontend** | React 18, Vite, Tailwind CSS, Recharts |
-| **Backend API** | FastAPI, Python 3.11 |
-| **CV / Vision** | PyTorch, `EfficientNet-B4`, Torchvision |
-| **Explainable AI** | `pytorch-grad-cam` |
-| **NLP** | HuggingFace Transformers, `dmis-lab/biobert-v1.1` |
-| **LLM & RAG** | LangChain, FAISS, `sentence-transformers`, Gemini 1.5 Flash |
+**Backend (API Server)**
+*   **Framework:** FastAPI (Python)
+*   **Machine Learning:** PyTorch (CPU-optimized for edge clouds), OpenCV, Hugging Face `transformers`
+*   **Vector Database:** FAISS (Facebook AI Similarity Search)
+*   **LLM Orchestration:** LangChain
+*   **Security:** `slowapi` (Rate limiter), `python-multipart`
 
-## Datasets
+## 🚀 How It Works (The Pipeline)
 
-- **Primary (Chest X-Ray):** [NIH ChestX-ray14](https://nihcc.app.box.com/v/ChestXray-NIHCC)
-- **Secondary (optional):** ISIC 2019 Skin Lesions
-- **NLP Symptoms:** DDXPlus Dataset
+1.  **Ingestion:** The user uploads a medical scan and optionally types or speaks their current symptoms into the dynamic React interface.
+2.  **Validation & Sanitization:** The FastAPI backend intercepts the file, strictly validates its MIME type, and holds the image securely in temporary RAM to ensure zero HIPAA/Privacy violations.
+3.  **Inference:** The PyTorch models classify the pathology (e.g., "Pneumonia Detected" or "Benign Nevus") with a confidence score.
+4.  **Explainability:** The Grad-CAM generator recalculates the neural network gradients to produce a thermal heatmap outlining the disease location, which is encoded in Base64.
+5.  **Synthesis:** A specialized LangChain prompt forces an LLM to read the AI's findings alongside the patient's symptoms, orchestrating a structured "Doctor's Report" (Findings, Assessment, Plan).
+6.  **Delivery:** The React frontend beautifully renders the synthesized report, displays the heatmap, mounts the interactive RAG chat module, and generates local specialist referrals.
 
-## Installation & Deployment
+## 💻 Local Development (Quickstart)
 
-### Run via Docker Compose (Recommended)
+Because MedAI relies on a complex ML architecture, the project is cleanly split into two asynchronous environments.
 
-1. Clone the repository and navigate to the directory:
-   ```bash
-   git clone https://github.com/your-repo/ai-medical-diagnosis.git
-   cd ai-medical-diagnosis
-   ```
-2. Set your `.env` File in the `backend/` folder:
-   ```env
-   GOOGLE_API_KEY=your_gemini_key
-   OPENAI_API_KEY=optional_openai_key
-   ```
-3. Run with Docker Compose:
-   ```bash
-   docker-compose up --build
-   ```
-   * The Frontend will be available at `http://localhost:3000`.
-   * The Backend API docs at `http://localhost:8000/docs`.
+### 1. Start the API (Backend)
+```bash
+cd backend
+python -m venv venv
+# Windows: .\venv\Scripts\activate
+# Mac/Linux: source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-## Benchmarks & Evaluation Targets
+### 2. Start the User Interface (Frontend)
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-| Metric | Target Value |
-|--------|-------|
-| AUC-ROC (Chest X-Ray) | > 0.82 |
-| Sensitivity (Recall) | > 0.75 |
-| Specificity | > 0.85 |
-| F1 Score (Macro) | > 0.72 |
-| Inference Time | ~1.4s (CPU) |
+*Note: Ensure your `backend/.env` file is populated with your preferred LLM API keys (`GROQ_API_KEY`, `GOOGLE_API_KEY`, etc.) before spinning up the server.*
 
-## Contributing
-We welcome contributions. Please review our safety guidelines when contributing to the medical prompts and models. Ensure guardrails are not bypassed during PRs.
+## ☁️ Cloud Deployment Architecture
 
-## Disclaimer
-⚠️ **MEDICAL AI SAFETY WARNING:** This system is built for research and demonstration purposes. It is **NOT** a substitute for professional medical advice, diagnosis, or treatment. The LLM guardrails actively prevent the prescription of medication or definitive diagnosis.
-
-## License
-MIT License
+MedAI is constructed with "Always-Awake" Infrastructure-as-Code (IaC), allowing it to side-step heavy ML server freezing.
+*   **Frontend `vercel.json`:** Ready out-of-the-box for global edge deployment on Vercel.
+*   **Backend `render.yaml` & `Dockerfile`:** Containerizes the massive PyTorch environment into a slim Debian wrapper for Render or Railway cloud computing.
+*   **Keep-Alive Daemon:** Includes a `keep_alive.py` ping script to eternally bypass free-tier API sleeping mechanics.
