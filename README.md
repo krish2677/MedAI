@@ -62,10 +62,3 @@ npm run dev
 ```
 
 *Note: Ensure your `backend/.env` file is populated with your preferred LLM API keys (`GROQ_API_KEY`, `GOOGLE_API_KEY`, etc.) before spinning up the server.*
-
-## ☁️ Cloud Deployment Architecture
-
-MedAI is constructed with "Always-Awake" Infrastructure-as-Code (IaC), allowing it to side-step heavy ML server freezing.
-*   **Frontend `vercel.json`:** Ready out-of-the-box for global edge deployment on Vercel.
-*   **Backend `render.yaml` & `Dockerfile`:** Containerizes the massive PyTorch environment into a slim Debian wrapper for Render or Railway cloud computing.
-*   **Keep-Alive Daemon:** Includes a `keep_alive.py` ping script to eternally bypass free-tier API sleeping mechanics.
