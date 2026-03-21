@@ -21,11 +21,13 @@ from utils.safety import (
 )
 from PIL import Image
 
+from utils.security import limiter
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-
 @router.get("/health", response_model=HealthResponse)
+@limiter.limit("20/minute")
 async def health_check(request: Request):
     """Returns model loading status and API version."""
     return HealthResponse(
@@ -40,6 +42,7 @@ async def health_check(request: Request):
 
 
 @router.post("/analyze")
+@limiter.limit("5/minute")
 async def analyze(
     request: Request,
     image: UploadFile = File(...),
@@ -58,6 +61,10 @@ async def analyze(
     valid_sym, sym_err = validate_symptoms_input(symptoms)
     if not valid_sym:
         raise HTTPException(status_code=400, detail=sym_err)
+
+    ALLOWED_MIMES = ["image/jpeg", "image/png", "image/webp", "image/jpg"]
+    if image.content_type not in ALLOWED_MIMES:
+        raise HTTPException(status_code=415, detail="Invalid file type. Only JPG, PNG, or WEBP images are allowed to prevent malicious payload uploads.")
 
     image_bytes = await image.read()
     if not validate_image_size(image_bytes):
@@ -118,6 +125,7 @@ async def analyze(
 
 
 @router.post("/report", response_model=ReportResponse)
+@limiter.limit("15/minute")
 async def generate_report(request: Request, body: ReportRequest):
     """RAG-powered LLM report generation."""
     vectorstore = request.app.state.vectorstore
@@ -153,6 +161,7 @@ async def generate_report(request: Request, body: ReportRequest):
 
 
 @router.post("/chat", response_model=ChatResponse)
+@limiter.limit("40/minute")
 async def chat(request: Request, body: ChatRequest):
     """Conversational follow-up Q&A about the diagnosis."""
     qa_chain = request.app.state.qa_chain

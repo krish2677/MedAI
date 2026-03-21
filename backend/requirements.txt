@@ -31,3 +31,5 @@ requests
 aiofiles
 httpx
 kagglehub
+slowapi
+gunicorn

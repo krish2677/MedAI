@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Do NOT ignore models/weights because Render needs the .pth files 
+# unless you intend to download them inside main.py on startup.
+# models/weights/*.pth

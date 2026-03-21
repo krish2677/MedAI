@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: medai-api
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    plan: starter # Starter plan has 512MB RAM, but PyTorch needs at least 2GB usually. 
+                  # Render Pro or standard is recommended.
+    region: ohio
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+    autoDeploy: false

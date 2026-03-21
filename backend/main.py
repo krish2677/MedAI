@@ -70,6 +70,13 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Shutting down API...")
 
 
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
+from utils.security import limiter
+
+# ...
+
 app = FastAPI(
     title="AI Medical Diagnosis API",
     description=(
@@ -80,11 +87,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# 1. Anti-DDoS Setup
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# 2. Strict CORS Policies (No wildcard domains)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "https://medai-production-url.com"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 

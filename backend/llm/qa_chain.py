@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import List
+from typing import List, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -32,18 +32,31 @@ SAFETY_DISCLAIMER = "\n\n*Note: Always consult a qualified healthcare provider f
 class QAChain:
     """Conversational Q&A chain for patient follow-up questions."""
 
-    def __init__(self, google_api_key: str = None, openai_api_key: str = None):
+    def __init__(self, google_api_key: Optional[str] = None, openai_api_key: Optional[str] = None):
         self.llm = self._init_llm(google_api_key, openai_api_key)
 
-    def _init_llm(self, google_api_key: str, openai_api_key: str):
+    def _init_llm(self, google_api_key: Optional[str] = None, openai_api_key: Optional[str] = None):
+        groq_key = os.getenv("GROQ_API_KEY")
         google_key = google_api_key or os.getenv("GOOGLE_API_KEY")
         openai_key = openai_api_key or os.getenv("OPENAI_API_KEY")
+
+        if groq_key and groq_key != "your_groq_api_key_here":
+            try:
+                from langchain_groq import ChatGroq
+                logger.info("Using Groq Llama 3 for QA Chain.")
+                return ChatGroq(
+                    model="llama-3.3-70b-versatile",
+                    groq_api_key=groq_key,
+                    temperature=0.5,
+                )
+            except Exception as e:
+                logger.warning(f"Groq QA init failed: {e}")
 
         if google_key and google_key != "your_google_gemini_api_key_here":
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 return ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
+                    model="gemini-2.5-flash",
                     google_api_key=google_key,
                     temperature=0.5,
                 )
@@ -70,9 +83,13 @@ class QAChain:
         diagnosis_context: str,
     ) -> tuple[str, List[dict]]:
         """
-        Generate a response to the user's follow-up question.
+        Generate a response to the user's follow-up question using OpenAI.
         Returns (response_text, updated_history).
         """
+        if self.llm is None:
+            # Force attempt to initialize if it was None (maybe env loaded late)
+            self.llm = self._init_llm(None, None)
+            
         if self.llm is not None:
             try:
                 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -95,10 +112,10 @@ class QAChain:
                 answer += SAFETY_DISCLAIMER
 
             except Exception as e:
-                logger.error(f"QA chain failed: {e}")
-                answer = self._fallback_response(message) + SAFETY_DISCLAIMER
+                logger.error(f"QA chain failed during invoke: {e}", exc_info=True)
+                answer = f"I'm sorry, I encountered an internal error connecting to the AI: {e}" + SAFETY_DISCLAIMER
         else:
-            answer = self._fallback_response(message) + SAFETY_DISCLAIMER
+            answer = "OpenAI API is not configured on the server. Please check your .env file." + SAFETY_DISCLAIMER
 
         updated_history = conversation_history + [
             {"role": "user", "content": message},

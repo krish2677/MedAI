@@ -55,17 +55,30 @@ class ReportGenerator:
     def __init__(self, google_api_key: str = None, openai_api_key: str = None):
         self.llm = self._init_llm(google_api_key, openai_api_key)
 
-    def _init_llm(self, google_api_key: str, openai_api_key: str):
-        """Initialize LLM with Gemini Flash as primary, GPT-4o-mini as fallback."""
+    def _init_llm(self, google_api_key: str = None, openai_api_key: str = None):
+        """Initialize LLM with Groq as primary, Gemini Flash as secondary, GPT-4o-mini as fallback."""
+        groq_key = os.getenv("GROQ_API_KEY")
         google_key = google_api_key or os.getenv("GOOGLE_API_KEY")
         openai_key = openai_api_key or os.getenv("OPENAI_API_KEY")
+
+        if groq_key and groq_key != "your_groq_api_key_here":
+            try:
+                from langchain_groq import ChatGroq
+                logger.info("Using Groq Llama 3 (70B) for report generation.")
+                return ChatGroq(
+                    model="llama-3.3-70b-versatile",
+                    groq_api_key=groq_key,
+                    temperature=0.3,
+                )
+            except Exception as e:
+                logger.warning(f"Groq init failed: {e}")
 
         if google_key and google_key != "your_google_gemini_api_key_here":
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
-                logger.info("Using Google Gemini 1.5 Flash for report generation.")
+                logger.info("Using Google Gemini for report generation.")
                 return ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
+                    model="gemini-2.5-flash",
                     google_api_key=google_key,
                     temperature=0.3,
                 )
