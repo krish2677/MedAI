@@ -64,6 +64,32 @@ def get_vectorstore(request: Request):
     return app.state.vectorstore
 
 
+def get_report_generator(request: Request):
+    """Retrieve or lazy-load the LLM Report Generator."""
+    app = request.app
+    if getattr(app.state, "report_generator", None) is None:
+        import os
+        from llm.report_generator import ReportGenerator
+        app.state.report_generator = ReportGenerator(
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
+            openai_api_key=os.getenv("OPENAI_API_KEY"),
+        )
+    return app.state.report_generator
+
+
+def get_qa_chain(request: Request):
+    """Retrieve or lazy-load the Q&A chain."""
+    app = request.app
+    if getattr(app.state, "qa_chain", None) is None:
+        import os
+        from llm.qa_chain import QAChain
+        app.state.qa_chain = QAChain(
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
+            openai_api_key=os.getenv("OPENAI_API_KEY"),
+        )
+    return app.state.qa_chain
+
+
 # ── Health Check ──────────────────────────────────────────────────────────────
 
 @router.get("/health", response_model=HealthResponse)
@@ -267,7 +293,7 @@ async def generate_report(request: Request, body: ReportRequest):
     """RAG-powered LLM report generation."""
     request_id = getattr(request.state, "request_id", "unknown")
     vectorstore     = get_vectorstore(request)
-    report_generator = request.app.state.report_generator
+    report_generator = get_report_generator(request)
 
     top_conditions  = " ".join([d.condition for d in body.diagnosis_list[:3]])
     query           = f"{top_conditions} {body.symptoms}"
@@ -303,7 +329,7 @@ async def generate_report(request: Request, body: ReportRequest):
 async def chat(request: Request, body: ChatRequest):
     """Conversational follow-up Q&A about the diagnosis."""
     request_id = getattr(request.state, "request_id", "unknown")
-    qa_chain = request.app.state.qa_chain
+    qa_chain = get_qa_chain(request)
 
     # Sanitize user message
     clean_message = sanitize_text_input(body.message)

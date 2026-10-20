@@ -122,6 +122,19 @@ app.add_middleware(
     max_age=600,  # preflight cache 10 minutes
 )
 
+from fastapi.responses import JSONResponse
+
+# ── Global Exception Handler (Ensures CORS headers are always returned on 500) ───
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global unhandled exception on {request.url}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal server error: {str(exc)}"},
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 app.include_router(router, prefix="/api/v1")
 
