@@ -37,58 +37,36 @@ ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw_origins.split(",") if o.st
 # ── Application Lifespan ──────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load all models and resources at startup."""
-    logger.info("🚀 Starting MedAI API (Multi-Modality — Production Mode)...")
+    """
+    Production-grade fast startup:
+    Binds HTTP port 8000 instantly (<1s) to satisfy cloud health scanners (Render/AWS/GCP),
+    while lazy-loading heavy vision and NLP models on demand to conserve RAM (<512MB).
+    """
+    logger.info("🚀 Starting MedAI API (Instant Cloud-Ready Boot Mode)...")
+
+    # In-memory model cache for lazy loading
+    app.state.models = {}
+    app.state.nlp_model = None
+    app.state.vectorstore = None
 
     google_api_key = os.getenv("GOOGLE_API_KEY")
     openai_api_key = os.getenv("OPENAI_API_KEY")
 
-    # ── Chest X-Ray Vision Model ──────────────────────────────────────────────
-    logger.info("Loading Chest X-Ray Vision Model...")
-    app.state.cv_model = CVModel(
-        weights_path=os.getenv("MODEL_WEIGHTS_PATH", "models/weights/efficientnet_chestxray.pth"),
-        modality="chest_xray",
-    )
+    # ── LLM Report Generator & Q&A Chain (Lightweight initialization) ───────────
+    try:
+        logger.info("Initializing LLM report generator and QA chain...")
+        app.state.report_generator = ReportGenerator(
+            google_api_key=google_api_key,
+            openai_api_key=openai_api_key,
+        )
+        app.state.qa_chain = QAChain(
+            google_api_key=google_api_key,
+            openai_api_key=openai_api_key,
+        )
+    except Exception as e:
+        logger.warning(f"LLM initialization warning: {e}")
 
-    # ── Skin Lesion Vision Model ──────────────────────────────────────────────
-    logger.info("Loading Skin Lesion Vision Model...")
-    app.state.skin_model = CVModel(
-        weights_path=os.getenv("SKIN_MODEL_WEIGHTS_PATH", "models/weights/vit_skin.pth"),
-        modality="skin",
-    )
-
-    # ── Retinal / Eye Disease Vision Model ────────────────────────────────────
-    logger.info("Loading Retinal Eye Disease Vision Model...")
-    app.state.retina_model = CVModel(
-        weights_path=os.getenv("RETINA_MODEL_WEIGHTS_PATH", "models/weights/vit_retina.pth"),
-        modality="retina",
-    )
-
-    # ── NLP Model ─────────────────────────────────────────────────────────────
-    logger.info("Loading NLP model...")
-    app.state.nlp_model = NLPModel()
-
-    # ── FAISS Vector Store ────────────────────────────────────────────────────
-    logger.info("Loading FAISS vector store...")
-    app.state.vectorstore = VectorStore(
-        index_path=os.getenv("FAISS_INDEX_PATH", "rag/faiss_medical_index")
-    )
-
-    # ── LLM Report Generator ──────────────────────────────────────────────────
-    logger.info("Initializing LLM report generator...")
-    app.state.report_generator = ReportGenerator(
-        google_api_key=google_api_key,
-        openai_api_key=openai_api_key,
-    )
-
-    # ── Q&A Chain ─────────────────────────────────────────────────────────────
-    logger.info("Initializing Q&A chain...")
-    app.state.qa_chain = QAChain(
-        google_api_key=google_api_key,
-        openai_api_key=openai_api_key,
-    )
-
-    logger.info("✅ All components loaded. API is ready.")
+    logger.info("✅ Core services initialized. Server listening on port 8000.")
     yield
 
     logger.info("🛑 Shutting down API...")

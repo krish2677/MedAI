@@ -204,10 +204,11 @@ class CVModel:
         self._load_zero_shot_fallback(CHEST_ZERO_SHOT_LABELS)
 
     def _load_skin_model(self):
-        """Load fine-tuned Skin Lesion specialist (HAM10000)."""
+        """Load fine-tuned Skin Lesion specialist (HAM10000). Priority given to lightweight models (<50MB)."""
         for model_id in [
-            "Kuldeepmishra3/vit-large-skin-cancer-ham10000",
+            "Anwarkh1/Skin_Cancer-Image_Classification",
             "nickmuchi/skin-cancer-detection-efficientnet",
+            "Kuldeepmishra3/vit-large-skin-cancer-ham10000",
         ]:
             try:
                 from transformers import pipeline as hf_pipeline
@@ -226,8 +227,8 @@ class CVModel:
         self._load_zero_shot_fallback(SKIN_ZERO_SHOT_LABELS)
 
     def _load_retina_model(self):
-        """Load comprehensive multi-disease Retinal specialist (Diabetic Retinopathy, Glaucoma, Cataract, AMD, etc.)."""
-        # Primary: Ken0965 SwinV2 9-class fundus classifier
+        """Load comprehensive multi-disease Retinal specialist (Diabetic Retinopathy, Glaucoma, AMD, etc.)."""
+        # Primary: Ken0965 SwinV2 9-class fundus classifier (~110MB)
         try:
             from transformers import pipeline as hf_pipeline, AutoImageProcessor, AutoModelForImageClassification
             proc = AutoImageProcessor.from_pretrained("microsoft/swinv2-tiny-patch4-window8-256")
@@ -241,19 +242,6 @@ class CVModel:
             self._pipeline_type = "image-classification"
             self._is_loaded = True
             logger.info("✅ Multi-disease Retina SwinV2 model loaded: Ken0965/eye_fundus_swinV2_tiny_ViT_model")
-
-            # Also load secondary Cataract pipeline
-            try:
-                self.cataract_pipeline = hf_pipeline(
-                    "image-classification",
-                    model="ttangmo24/vit-base-classification-Eye-Diseases-New02",
-                    device=self.device,
-                )
-                logger.info("✅ Secondary Cataract/Eye Disease ViT pipeline loaded.")
-            except Exception as cat_e:
-                logger.warning(f"Secondary cataract pipeline skipped: {cat_e}")
-                self.cataract_pipeline = None
-
             return
         except Exception as e:
             logger.warning(f"Could not load primary SwinV2 eye model ({e}). Trying fallback...")

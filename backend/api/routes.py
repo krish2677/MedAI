@@ -27,21 +27,59 @@ from utils.security import limiter
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# ── Model Lazy-Load Helpers ───────────────────────────────────────────────────
+
+def get_cv_model(request: Request, modality: str):
+    """Retrieve or lazy-load the vision model for the requested modality."""
+    app = request.app
+    if not hasattr(app.state, "models"):
+        app.state.models = {}
+    if modality not in app.state.models:
+        logger.info(f"⏳ On-demand loading CV model for modality '{modality}'...")
+        from models.cv_model import CVModel
+        app.state.models[modality] = CVModel(modality=modality)
+    return app.state.models[modality]
+
+
+def get_nlp_model(request: Request):
+    """Retrieve or lazy-load the clinical NLP model."""
+    app = request.app
+    if getattr(app.state, "nlp_model", None) is None:
+        logger.info("⏳ On-demand loading NLP model...")
+        from models.nlp_model import NLPModel
+        app.state.nlp_model = NLPModel()
+    return app.state.nlp_model
+
+
+def get_vectorstore(request: Request):
+    """Retrieve or lazy-load the medical FAISS vector store."""
+    app = request.app
+    if getattr(app.state, "vectorstore", None) is None:
+        logger.info("⏳ On-demand loading VectorStore...")
+        import os
+        from rag.vectorstore import VectorStore
+        app.state.vectorstore = VectorStore(
+            index_path=os.getenv("FAISS_INDEX_PATH", "rag/faiss_medical_index")
+        )
+    return app.state.vectorstore
+
+
 # ── Health Check ──────────────────────────────────────────────────────────────
 
 @router.get("/health", response_model=HealthResponse)
 @limiter.limit("60/minute")
 async def health_check(request: Request):
-    """Returns model loading status and API version."""
+    """Returns instant 200 OK and model status. Non-blocking for cloud health checks."""
+    models_dict = getattr(request.app.state, "models", {})
     return HealthResponse(
         status="healthy",
         version="2.0.0",
         models_loaded={
-            "cv_model_chest":  hasattr(request.app.state, "cv_model")     and request.app.state.cv_model.is_loaded,
-            "cv_model_skin":   hasattr(request.app.state, "skin_model")   and request.app.state.skin_model.is_loaded,
-            "cv_model_retina": hasattr(request.app.state, "retina_model") and request.app.state.retina_model.is_loaded,
-            "nlp_model":       hasattr(request.app.state, "nlp_model")    and request.app.state.nlp_model.is_loaded,
-            "vectorstore":     hasattr(request.app.state, "vectorstore"),
+            "cv_model_chest":  "chest_xray" in models_dict and models_dict["chest_xray"].is_loaded,
+            "cv_model_skin":   "skin" in models_dict and models_dict["skin"].is_loaded,
+            "cv_model_retina": "retina" in models_dict and models_dict["retina"].is_loaded,
+            "nlp_model":       getattr(request.app.state, "nlp_model", None) is not None and request.app.state.nlp_model.is_loaded,
+            "vectorstore":     getattr(request.app.state, "vectorstore", None) is not None,
         },
     )
 
@@ -52,15 +90,14 @@ async def health_check(request: Request):
 @limiter.limit("30/minute")
 async def get_metrics(request: Request):
     """Returns real-time model telemetry and architecture info for all modalities."""
-    cv_chest_loaded  = hasattr(request.app.state, "cv_model")     and request.app.state.cv_model.is_loaded
-    cv_skin_loaded   = hasattr(request.app.state, "skin_model")   and request.app.state.skin_model.is_loaded
-    cv_retina_loaded = hasattr(request.app.state, "retina_model") and request.app.state.retina_model.is_loaded
-    llm_ready        = hasattr(request.app.state, "qa_chain")     and request.app.state.qa_chain.llm is not None
-
-    all_cv_loaded = cv_chest_loaded and cv_skin_loaded and cv_retina_loaded
+    models_dict = getattr(request.app.state, "models", {})
+    cv_chest_loaded  = "chest_xray" in models_dict and models_dict["chest_xray"].is_loaded
+    cv_skin_loaded   = "skin" in models_dict and models_dict["skin"].is_loaded
+    cv_retina_loaded = "retina" in models_dict and models_dict["retina"].is_loaded
+    llm_ready        = hasattr(request.app.state, "qa_chain") and request.app.state.qa_chain.llm is not None
 
     return {
-        "status": "online" if all_cv_loaded else ("partial" if any([cv_chest_loaded, cv_skin_loaded, cv_retina_loaded]) else "degraded"),
+        "status": "online",
         "modalities": {
             "chest_xray": {
                 "model_name": "gianlab/swin-tiny-patch4-window7-224-finetuned-lungs-disease",
@@ -177,13 +214,8 @@ async def analyze(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # ── 1. CV Inference ───────────────────────────────────────────────────────
-    if modality == "skin" and hasattr(request.app.state, "skin_model"):
-        cv_model = request.app.state.skin_model
-    elif modality == "retina" and hasattr(request.app.state, "retina_model"):
-        cv_model = request.app.state.retina_model
-    else:
-        cv_model = request.app.state.cv_model
+    # ── 1. CV Inference (On-Demand Loading) ───────────────────────────────────
+    cv_model = get_cv_model(request, modality)
 
     try:
         image_predictions = cv_model.predict(pil_image)
@@ -198,8 +230,8 @@ async def analyze(
         logger.warning(f"[{request_id}] Heatmap generation failed: {e}. Using empty placeholder.")
         heatmap_b64 = ""
 
-    # ── 3. NLP Analysis ───────────────────────────────────────────────────────
-    nlp_model = request.app.state.nlp_model
+    # ── 3. NLP Analysis (On-Demand Loading) ───────────────────────────────────
+    nlp_model = get_nlp_model(request)
     try:
         nlp_result        = nlp_model.analyze(symptoms)
         nlp_predictions   = nlp_result.get("disease_scores", [])
@@ -234,7 +266,7 @@ async def analyze(
 async def generate_report(request: Request, body: ReportRequest):
     """RAG-powered LLM report generation."""
     request_id = getattr(request.state, "request_id", "unknown")
-    vectorstore     = request.app.state.vectorstore
+    vectorstore     = get_vectorstore(request)
     report_generator = request.app.state.report_generator
 
     top_conditions  = " ".join([d.condition for d in body.diagnosis_list[:3]])
