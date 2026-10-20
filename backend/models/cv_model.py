@@ -156,7 +156,7 @@ class CVModel:
     """
 
     def __init__(self, weights_path: str = None, modality: str = "chest_xray"):
-        self.device = 0 if torch.cuda.is_available() else -1
+        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.modality = modality
         self._is_loaded = False
         self.specialist_pipeline = None

@@ -30,10 +30,21 @@ router = APIRouter()
 # ── Model Lazy-Load Helpers ───────────────────────────────────────────────────
 
 def get_cv_model(request: Request, modality: str):
-    """Retrieve or lazy-load the vision model for the requested modality."""
+    """Retrieve or lazy-load the vision model for the requested modality, releasing inactive models to keep RAM < 300MB."""
     app = request.app
     if not hasattr(app.state, "models"):
         app.state.models = {}
+
+    # Free inactive vision models to ensure total container RAM never exceeds Render's 512MB ceiling
+    for loaded_mod in list(app.state.models.keys()):
+        if loaded_mod != modality:
+            logger.info(f"Releasing inactive vision model '{loaded_mod}' to free memory...")
+            del app.state.models[loaded_mod]
+            import gc, torch
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
     if modality not in app.state.models:
         logger.info(f"⏳ On-demand loading CV model for modality '{modality}'...")
         from models.cv_model import CVModel
