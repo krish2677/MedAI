@@ -16,7 +16,7 @@
         { "key": "Permissions-Policy",      "value": "geolocation=(), microphone=(), camera=()" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.onrender.com https://medai-api-exye.onrender.com; frame-ancestors 'none';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.onrender.com https://medai-api-tivz.onrender.com; frame-ancestors 'none';"
         }
       ]
     },
@@ -43,7 +43,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://medai-api-exye.onrender.com/api/$1"
+      "destination": "https://medai-api-tivz.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",

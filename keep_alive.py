@@ -8,8 +8,8 @@ Usage (run this locally or on a separate free cron service like cron-job.org):
   python keep_alive.py
 
 Or deploy it to a free cron hosting service and point it at your Render URL.
-Tip: Use https://cron-job.org (free) to run a GET request every 10 minutes
-     → URL: https://medai-api-exye.onrender.com/api/v1/health
+# Tip: Use https://cron-job.org (free) to run a GET request every 10 minutes
+#      → URL: https://medai-api-tivz.onrender.com/api/v1/health
 """
 
 import time
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # ── Config ────────────────────────────────────────────────────────────────────
 HEALTH_URL   = os.getenv(
     "RENDER_HEALTH_URL",
-    "https://medai-api-exye.onrender.com/api/v1/health",
+    "https://medai-api-tivz.onrender.com/api/v1/health",
 )
 PING_INTERVAL = int(os.getenv("PING_INTERVAL_SECONDS", "600"))  # 10 minutes
 REQUEST_TIMEOUT = 30  # seconds
