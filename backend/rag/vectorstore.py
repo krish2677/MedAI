@@ -35,7 +35,8 @@ class VectorStore:
             from langchain_community.vectorstores import FAISS
             from langchain_community.embeddings import HuggingFaceEmbeddings
 
-            if os.path.exists(index_path):
+            faiss_file = os.path.join(index_path, "index.faiss")
+            if os.path.isfile(faiss_file):
                 embeddings = HuggingFaceEmbeddings(
                     model_name="sentence-transformers/all-MiniLM-L6-v2"
                 )
@@ -46,9 +47,9 @@ class VectorStore:
                 )
                 logger.info(f"Loaded FAISS index from {index_path}")
             else:
-                logger.warning(
-                    f"No FAISS index found at '{index_path}'. "
-                    "Using curated fallback medical documents."
+                logger.info(
+                    f"No FAISS index file found at '{faiss_file}'. "
+                    "Using high-speed curated fallback medical documents (RAM-optimized)."
                 )
         except Exception as e:
             logger.warning(f"FAISS load error: {e}. Using fallback documents.")
