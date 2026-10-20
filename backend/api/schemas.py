@@ -1,16 +1,16 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 
 
 class DiagnosisItem(BaseModel):
-    condition: str
-    final_score: float
+    condition: str = Field(..., max_length=256)
+    final_score: float = Field(..., ge=0.0, le=1.0)
 
 
 class ImagePrediction(BaseModel):
-    condition: str
-    confidence: float
-    source: str
+    condition: str = Field(..., max_length=256)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    source: str = Field(..., max_length=64)
 
 
 class AnalysisResponse(BaseModel):
@@ -24,9 +24,14 @@ class AnalysisResponse(BaseModel):
 
 
 class ReportRequest(BaseModel):
-    diagnosis_list: List[DiagnosisItem]
-    symptoms: str
-    patient_context: Optional[str] = None
+    diagnosis_list: List[DiagnosisItem] = Field(..., max_length=10)
+    symptoms: str = Field(..., min_length=5, max_length=5000)
+    patient_context: Optional[str] = Field(None, max_length=2000)
+
+    @field_validator("symptoms")
+    @classmethod
+    def strip_symptoms(cls, v: str) -> str:
+        return v.strip()
 
 
 class ReportResponse(BaseModel):
@@ -36,9 +41,14 @@ class ReportResponse(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str
-    conversation_history: List[dict] = Field(default_factory=list)
-    diagnosis_context: str
+    message: str = Field(..., min_length=1, max_length=2000)
+    conversation_history: List[dict] = Field(default_factory=list, max_length=20)
+    diagnosis_context: str = Field(..., max_length=4000)
+
+    @field_validator("message")
+    @classmethod
+    def strip_message(cls, v: str) -> str:
+        return v.strip()
 
 
 class ChatResponse(BaseModel):

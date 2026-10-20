@@ -56,22 +56,32 @@ class ReportGenerator:
         self.llm = self._init_llm(google_api_key, openai_api_key)
 
     def _init_llm(self, google_api_key: str = None, openai_api_key: str = None):
-        """Initialize LLM with Groq as primary, Gemini Flash as secondary, GPT-4o-mini as fallback."""
+        """Initialize LLM with Groq (qwen/qwen3.8-27b / gpt-oss) as primary."""
         groq_key = os.getenv("GROQ_API_KEY")
         google_key = google_api_key or os.getenv("GOOGLE_API_KEY")
         openai_key = openai_api_key or os.getenv("OPENAI_API_KEY")
 
-        if groq_key and groq_key != "your_groq_api_key_here":
-            try:
-                from langchain_groq import ChatGroq
-                logger.info("Using Groq Llama 3 (70B) for report generation.")
-                return ChatGroq(
-                    model="llama-3.3-70b-versatile",
-                    groq_api_key=groq_key,
-                    temperature=0.3,
-                )
-            except Exception as e:
-                logger.warning(f"Groq init failed: {e}")
+        if groq_key and groq_key not in ["your_groq_api_key_here", "REPLACE_WITH_NEW_GROQ_KEY"]:
+            from langchain_groq import ChatGroq
+            candidate_models = [
+                os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
+                "qwen/qwen3.8-27b",
+                "openai/gpt-oss-120b",
+                "openai/gpt-oss-20b",
+            ]
+            for groq_model in candidate_models:
+                try:
+                    logger.info(f"Attempting Groq model ({groq_model}) for report generation...")
+                    llm = ChatGroq(
+                        model=groq_model,
+                        groq_api_key=groq_key,
+                        temperature=0.3,
+                    )
+                    llm.invoke("Hi")
+                    logger.info(f"✅ Verified working Groq model for reports: {groq_model}")
+                    return llm
+                except Exception as e:
+                    logger.warning(f"Groq report model {groq_model} unavailable: {e}")
 
         if google_key and google_key != "your_google_gemini_api_key_here":
             try:

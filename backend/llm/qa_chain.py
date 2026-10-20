@@ -40,17 +40,29 @@ class QAChain:
         google_key = google_api_key or os.getenv("GOOGLE_API_KEY")
         openai_key = openai_api_key or os.getenv("OPENAI_API_KEY")
 
-        if groq_key and groq_key != "your_groq_api_key_here":
-            try:
-                from langchain_groq import ChatGroq
-                logger.info("Using Groq Llama 3 for QA Chain.")
-                return ChatGroq(
-                    model="llama-3.3-70b-versatile",
-                    groq_api_key=groq_key,
-                    temperature=0.5,
-                )
-            except Exception as e:
-                logger.warning(f"Groq QA init failed: {e}")
+        if groq_key and groq_key not in ["your_groq_api_key_here", "REPLACE_WITH_NEW_GROQ_KEY"]:
+            from langchain_groq import ChatGroq
+            candidate_models = [
+                os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
+                "qwen/qwen3.8-27b",
+                "openai/gpt-oss-120b",
+                "openai/gpt-oss-20b",
+            ]
+            for groq_model in candidate_models:
+                try:
+                    logger.info(f"Attempting Groq model ({groq_model}) for QA Chain...")
+                    llm = ChatGroq(
+                        model=groq_model,
+                        groq_api_key=groq_key,
+                        temperature=0.5,
+                    )
+                    # Quick validation ping to ensure model is active
+                    llm.invoke("Hi")
+                    self.active_groq_model = groq_model
+                    logger.info(f"✅ Verified working Groq model: {groq_model}")
+                    return llm
+                except Exception as e:
+                    logger.warning(f"Groq model {groq_model} unavailable: {e}")
 
         if google_key and google_key != "your_google_gemini_api_key_here":
             try:
@@ -83,13 +95,13 @@ class QAChain:
         diagnosis_context: str,
     ) -> tuple[str, List[dict]]:
         """
-        Generate a response to the user's follow-up question using OpenAI.
+        Generate a response to the user's follow-up question.
         Returns (response_text, updated_history).
         """
         if self.llm is None:
-            # Force attempt to initialize if it was None (maybe env loaded late)
             self.llm = self._init_llm(None, None)
-            
+
+        answer = ""
         if self.llm is not None:
             try:
                 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -99,7 +111,7 @@ class QAChain:
                         diagnosis_context=diagnosis_context
                     ))
                 ]
-                for turn in conversation_history[-10:]:  # Keep last 10 turns
+                for turn in conversation_history[-10:]:
                     if turn["role"] == "user":
                         messages.append(HumanMessage(content=turn["content"]))
                     elif turn["role"] == "assistant":
@@ -112,10 +124,20 @@ class QAChain:
                 answer += SAFETY_DISCLAIMER
 
             except Exception as e:
-                logger.error(f"QA chain failed during invoke: {e}", exc_info=True)
-                answer = f"I'm sorry, I encountered an internal error connecting to the AI: {e}" + SAFETY_DISCLAIMER
+                logger.error(f"QA chain invoke error: {e}. Attempting auto-failover...", exc_info=True)
+                # Re-initialize LLM to pick alternative active model
+                self.llm = self._init_llm(None, None)
+                if self.llm is not None:
+                    try:
+                        response = self.llm.invoke(messages)
+                        answer = (response.content if hasattr(response, "content") else str(response)) + SAFETY_DISCLAIMER
+                    except Exception as retry_e:
+                        logger.error(f"QA retry failed: {retry_e}")
+                        answer = self._fallback_response(message) + SAFETY_DISCLAIMER
+                else:
+                    answer = self._fallback_response(message) + SAFETY_DISCLAIMER
         else:
-            answer = "OpenAI API is not configured on the server. Please check your .env file." + SAFETY_DISCLAIMER
+            answer = self._fallback_response(message) + SAFETY_DISCLAIMER
 
         updated_history = conversation_history + [
             {"role": "user", "content": message},

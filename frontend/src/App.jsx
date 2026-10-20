@@ -8,6 +8,7 @@ import Home from './pages/Home'
 import Results from './pages/Results'
 import About from './pages/About'
 import Process from './pages/Process'
+import ModelMetrics from './pages/ModelMetrics'
 import Navbar from './components/Navbar'
 import { useAnalysis } from './hooks/useAnalysis'
 
@@ -18,6 +19,7 @@ function AnimatedRoutes({ analyze, loading, reportLoading, error, result }) {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Home onAnalyze={analyze} loading={loading} />} />
+        <Route path="/metrics" element={<ModelMetrics />} />
         <Route path="/about" element={<About />} />
         <Route path="/process" element={<Process />} />
         <Route path="/results" element={

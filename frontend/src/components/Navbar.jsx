@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Stethoscope, Info, ActivitySquare } from 'lucide-react';
+import { Stethoscope, Info, ActivitySquare, BarChart3 } from 'lucide-react';
 
 export default function Navbar() {
   return (
@@ -19,6 +19,12 @@ export default function Navbar() {
             className={({isActive}) => `text-sm font-bold flex items-center gap-1.5 transition-all hover:-translate-y-0.5 ${isActive ? 'text-primary-600' : 'text-slate-500 hover:text-primary-500'}`}
           >
             Home
+          </NavLink>
+          <NavLink 
+            to="/metrics" 
+            className={({isActive}) => `text-sm font-bold flex items-center gap-1.5 transition-all hover:-translate-y-0.5 ${isActive ? 'text-primary-600' : 'text-slate-500 hover:text-primary-500'}`}
+          >
+            <BarChart3 size={16} /> Model Analytics
           </NavLink>
           <NavLink 
             to="/process" 

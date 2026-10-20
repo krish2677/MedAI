@@ -2,9 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const scans = [
-  { id: 'chest_xray', title: 'Chest X-Ray', desc: 'Pulmonary radiograph and lung analysis', icon: '🫁', color: 'from-blue-500 to-cyan-400', shadow: 'shadow-blue-500/30', border: 'border-blue-500' },
-  { id: 'skin', title: 'Skin Lesion', desc: 'Dermatological anomaly and cancer detection', icon: '🔬', color: 'from-teal-500 to-emerald-400', shadow: 'shadow-teal-500/30', border: 'border-teal-500' },
-  { id: 'retina', title: 'Retinal Scan', desc: 'Ocular condition and retinopathy screening', icon: '👁️', color: 'from-purple-500 to-indigo-400', shadow: 'shadow-purple-500/30', border: 'border-purple-500' }
+  { id: 'chest_xray', title: 'Chest X-Ray', desc: 'Pulmonary radiograph — COVID-19, Tuberculosis, Bacterial/Viral Pneumonia & Normal', icon: '🫁', color: 'from-blue-500 to-cyan-400', shadow: 'shadow-blue-500/30', border: 'border-blue-500' },
+  { id: 'skin', title: 'Skin Lesion', desc: 'Dermatoscopy — Melanoma, BCC, Actinic Keratosis & 7 conditions', icon: '🔬', color: 'from-teal-500 to-emerald-400', shadow: 'shadow-teal-500/30', border: 'border-teal-500' },
+  { id: 'retina', title: 'Retinal Scan', desc: 'Fundus imaging — DR, Glaucoma, Cataract, Retinal Detachment & 10 conditions', icon: '👁️', color: 'from-purple-500 to-indigo-400', shadow: 'shadow-purple-500/30', border: 'border-purple-500' }
 ];
 
 export default function ScanSelector({ selected, onSelect }) {

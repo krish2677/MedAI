@@ -4,8 +4,16 @@ services:
     env: docker
     rootDir: backend
     dockerfilePath: Dockerfile
-    plan: free # Changed to the completely free tier
+    plan: free
     region: ohio
+    healthCheckPath: /api/v1/health
+
+    # ── Build & Deploy ─────────────────────────────────────────────────────────
+    autoDeploy: false                    # manual deploy = no accidental downtime
+
+    # ── Environment Variables ──────────────────────────────────────────────────
+    # Set real values in the Render dashboard → Environment tab
+    # Never paste real API keys here — this file is committed to git!
     envVars:
       - key: GOOGLE_API_KEY
         sync: false
@@ -13,4 +21,22 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-    autoDeploy: false
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
+      - key: PORT
+        value: "8000"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DEBUG
+        value: "false"
+      # Set this to your real Vercel frontend URL after deploy
+      # e.g. https://medai-xyz.vercel.app
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: TRUSTED_HOSTS
+        value: "*"
+      # HuggingFace cache directory inside container
+      - key: HF_HOME
+        value: /tmp/huggingface
+      - key: TRANSFORMERS_CACHE
+        value: /tmp/huggingface/transformers
