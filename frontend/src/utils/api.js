@@ -1,8 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
-  timeout: 120000, // 2 minutes for analysis
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://medai-api-tivz.onrender.com/api/v1',
+  timeout: 180000, // 3 minutes for ML inference
 })
 
 api.interceptors.response.use(

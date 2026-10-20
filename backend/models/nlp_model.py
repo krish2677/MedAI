@@ -83,7 +83,11 @@ class NLPModel:
 
     def __init__(self):
         self._pipeline = None
-        self._load_ner_pipeline()
+        # Load heavy 436MB BERT model only if explicitly enabled; otherwise use instant rule-based engine (<1ms, 0MB RAM)
+        if os.getenv("ENABLE_HEAVY_NER", "false").lower() == "true":
+            self._load_ner_pipeline()
+        else:
+            logger.info("Using high-performance clinical rule-based symptom extraction (RAM-optimized).")
 
     def _load_ner_pipeline(self):
         """Attempt to load the Medical NER pipeline from HuggingFace."""
