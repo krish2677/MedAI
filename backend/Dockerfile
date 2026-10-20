@@ -35,10 +35,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install only the minimal runtime libs (no build tools)
+# Install only the minimal runtime libs (including libgl1 for OpenCV)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         libgomp1 \
+        libgl1 \
+        libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder stage (multi-stage build = smaller image)

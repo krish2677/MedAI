@@ -1,11 +1,18 @@
 import numpy as np
-import cv2
 import base64
 import io
 import logging
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+try:
+    import cv2
+    HAS_OPENCV = True
+except Exception as _e:
+    logger.warning(f"OpenCV import failed ({_e}). Heatmaps will use pure NumPy/PIL fallback.")
+    cv2 = None
+    HAS_OPENCV = False
 
 
 def generate_heatmap(model, image: Image.Image, target_class_idx: int = None) -> str:
@@ -41,10 +48,19 @@ def generate_heatmap(model, image: Image.Image, target_class_idx: int = None) ->
         return _generate_synthetic_heatmap(image)
 
 
+def _numpy_jet_colormap(val: np.ndarray) -> np.ndarray:
+    """Pure NumPy JET colormap (no OpenCV or libGL dependency)."""
+    r = np.clip(1.5 - np.abs(4.0 * val - 3.0), 0.0, 1.0)
+    g = np.clip(1.5 - np.abs(4.0 * val - 2.0), 0.0, 1.0)
+    b = np.clip(1.5 - np.abs(4.0 * val - 1.0), 0.0, 1.0)
+    return (np.stack([r, g, b], axis=-1) * 255).astype(np.uint8)
+
+
 def _generate_synthetic_heatmap(image: Image.Image) -> str:
     """
     Generate a visually convincing synthetic heatmap for demo purposes.
     Creates a center-weighted Gaussian heatmap overlaid on the image.
+    Works with or without OpenCV.
     """
     img = np.array(image.convert("RGB").resize((380, 380)))
 
@@ -65,11 +81,14 @@ def _generate_synthetic_heatmap(image: Image.Image) -> str:
 
     heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min() + 1e-8)
 
-    # Apply colormap (jet) to heatmap
-    heatmap_colored = cv2.applyColorMap(
-        (heatmap * 255).astype(np.uint8), cv2.COLORMAP_JET
-    )
-    heatmap_colored_rgb = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
+    if HAS_OPENCV and cv2 is not None:
+        try:
+            heatmap_colored = cv2.applyColorMap((heatmap * 255).astype(np.uint8), cv2.COLORMAP_JET)
+            heatmap_colored_rgb = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
+        except Exception:
+            heatmap_colored_rgb = _numpy_jet_colormap(heatmap)
+    else:
+        heatmap_colored_rgb = _numpy_jet_colormap(heatmap)
 
     # Blend with original image
     alpha = 0.45
